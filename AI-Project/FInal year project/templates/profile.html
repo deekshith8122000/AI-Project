@@ -1,0 +1,432 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <!-- Add this in the profile header section, near the profile picture display -->
+        <div class="profile-pic-container">
+            <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="{{ user.username }}" class="profile-pic">
+            
+            {% if current_user.id == user.id %}
+            <div class="update-profile-pic">
+                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#updateProfilePicModal">
+                    <i class="fas fa-camera"></i> Change Photo
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        <!-- Add this modal at the end of your profile template, before the closing block tag -->
+        {% if current_user.id == user.id %}
+        <!-- Profile Picture Update Modal -->
+        <div class="modal fade" id="updateProfilePicModal" tabindex="-1" aria-labelledby="updateProfilePicModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="updateProfilePicModalLabel">Update Profile Picture</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="{{ url_for('update_profile_pic') }}" method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="profile_pic" class="form-label">Select new profile picture</label>
+                                <input class="form-control" type="file" id="profile_pic" name="profile_pic" accept="image/*" required>
+                                <div class="mt-2">
+                                    <img id="profile-pic-preview" class="img-fluid d-none" alt="Profile picture preview">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Update Profile Picture</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="profile-info">
+            <div class="profile-username-section">
+                <h2 class="username">{{ user.username }}</h2>
+                {% if user.verified %}
+                <span class="verified-badge">
+                    <i class="fas fa-check-circle"></i>
+                </span>
+                {% endif %}
+                
+                {% if current_user.id != user.id %}
+                    <div class="profile-actions">
+                        {% if is_following %}
+                        <form action="{{ url_for('unfollow', user_id=user.id) }}" method="post">
+                            <button type="submit" class="btn btn-outline-primary follow-btn">Following</button>
+                        </form>
+                        {% else %}
+                        <form action="{{ url_for('follow', user_id=user.id) }}" method="post">
+                            <button type="submit" class="btn btn-primary follow-btn">Follow</button>
+                        </form>
+                        {% endif %}
+                        <button class="btn btn-outline-primary message-btn">Message</button>
+                        <button class="btn btn-outline-secondary more-btn">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="profile-actions">
+                        <button class="btn btn-outline-primary edit-profile-btn">Edit profile</button>
+                        <button class="btn btn-outline-secondary more-btn">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-count">{{ posts|length }}</span> posts
+                </div>
+                <div class="stat-item">
+                    <span class="stat-count">{{ follower_count }}</span> followers
+                </div>
+                <div class="stat-item">
+                    <span class="stat-count">{{ following_count }}</span> following
+                </div>
+            </div>
+            
+            <div class="profile-bio">
+                <div class="display-name">{{ user.username }}</div>
+                <div class="bio-text">
+                    {% if user.bio %}
+                        {{ user.bio }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-tabs">
+        <div class="tab active">
+            <i class="fas fa-th"></i> POSTS
+        </div>
+        <div class="tab">
+            <i class="fas fa-film"></i> REELS
+        </div>
+        <div class="tab">
+            <i class="fas fa-tag"></i> TAGGED
+        </div>
+    </div>
+    
+    <div class="profile-posts-grid">
+        {% if posts %}
+            {% for post in posts %}
+                <div class="grid-item">
+                    <a href="#" class="grid-post">
+                        {% if post.image_file %}
+                            <img src="{{ url_for('static', filename='uploads/posts/' + post.image_file) }}" alt="Post image">
+                        {% else %}
+                            <div class="text-post">
+                                <p>{{ post.content }}</p>
+                            </div>
+                        {% endif %}
+                        <div class="post-overlay">
+                            <div class="post-stats">
+                                <div class="stat">
+                                    <i class="fas fa-heart"></i> {{ post.likes|length }}
+                                </div>
+                                <div class="stat">
+                                    <i class="fas fa-comment"></i> {{ post.comments|length }}
+                                </div>
+                            </div>
+                            {% if post.user_id == current_user.id %}
+                            <div class="post-actions-overlay">
+                                <form action="{{ url_for('delete_post', post_id=post.id) }}" method="post" class="delete-post-form">
+                                    <button type="submit" class="delete-post-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-posts">
+                <p>No posts yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Instagram-style profile page */
+.profile-container {
+    max-width: 935px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.profile-header {
+    display: flex;
+    margin-bottom: 44px;
+}
+
+.profile-pic-container {
+    width: 150px;
+    height: 150px;
+    margin-right: 30px;
+    flex-shrink: 0;
+}
+
+.profile-pic {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #dbdbdb;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-username-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.username {
+    font-size: 28px;
+    font-weight: 300;
+    margin-right: 8px;
+    margin-bottom: 0;
+}
+
+.verified-badge {
+    color: #3897f0;
+    font-size: 18px;
+}
+
+.profile-actions {
+    display: flex;
+    margin-left: 20px;
+}
+
+.follow-btn, .message-btn, .edit-profile-btn {
+    margin-right: 8px;
+    font-weight: 600;
+    padding: 5px 9px;
+    font-size: 14px;
+}
+
+.more-btn {
+    padding: 5px 9px;
+}
+
+.profile-stats {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.stat-item {
+    margin-right: 40px;
+    font-size: 16px;
+}
+
+.stat-count {
+    font-weight: 600;
+}
+
+.profile-bio {
+    font-size: 16px;
+}
+
+.display-name {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.profile-tabs {
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid #dbdbdb;
+    margin-bottom: 20px;
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    margin: 0 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #8e8e8e;
+    cursor: pointer;
+    letter-spacing: 1px;
+}
+
+.tab i {
+    margin-right: 6px;
+}
+
+.tab.active {
+    color: #262626;
+    border-top: 1px solid #262626;
+    margin-top: -1px;
+}
+
+.profile-posts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+}
+
+.grid-item {
+    position: relative;
+    padding-bottom: 100%; /* Square aspect ratio */
+    overflow: hidden;
+}
+
+.grid-post {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.grid-post img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.text-post {
+    width: 100%;
+    height: 100%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    text-align: center;
+}
+
+.post-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.grid-post:hover .post-overlay {
+    opacity: 1;
+}
+
+.post-stats {
+    display: flex;
+    color: white;
+}
+
+.stat {
+    margin: 0 10px;
+    font-weight: 600;
+}
+
+.stat i {
+    margin-right: 5px;
+}
+
+.post-actions-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.delete-post-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.2s ease;
+}
+
+.delete-post-btn:hover {
+    color: #ff3b30;
+}
+
+.no-posts {
+    grid-column: span 3;
+    text-align: center;
+    padding: 40px 0;
+    color: #8e8e8e;
+}
+
+@media (max-width: 735px) {
+    .profile-header {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .profile-pic-container {
+        margin-right: 0;
+        margin-bottom: 20px;
+    }
+    
+    .profile-username-section {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .profile-actions {
+        margin-left: 0;
+        margin-top: 10px;
+    }
+    
+    .profile-stats {
+        justify-content: space-around;
+        width: 100%;
+    }
+    
+    .stat-item {
+        margin-right: 0;
+    }
+    
+    .profile-bio {
+        text-align: center;
+    }
+    
+    .profile-posts-grid {
+        gap: 3px;
+    }
+}
+
+@media (max-width: 500px) {
+    .profile-posts-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .no-posts {
+        grid-column: span 2;
+    }
+}
+.default-profile-pic {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+}
+</style>
+{% endblock %}

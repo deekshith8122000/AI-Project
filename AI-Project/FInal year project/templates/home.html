@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="home-container">
+    <!-- Stories section at the top -->
+    <div class="stories-container">
+        <div class="story-item">
+            <div class="story-avatar">
+                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" alt="{{ current_user.username }}">
+            </div>
+            <div class="story-username">Your Story</div>
+        </div>
+        {% for user in followed_users %}
+            <div class="story-item">
+                <div class="story-avatar">
+                    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="{{ user.username }}">
+                </div>
+                <div class="story-username">{{ user.username }}</div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <div class="posts-container">
+        {% set has_visible_posts = false %}
+        {% for post in posts %}
+            {% if post.user_id != current_user.id %}
+                {% set has_visible_posts = true %}
+                <div class="post-card">
+                    <div class="post-header">
+                        <div class="post-user">
+                            <img src="{{ url_for('static', filename='uploads/' + post.author.profile_pic) }}" alt="{{ post.author.username }}" class="profile-pic-small">
+                            <div class="post-user-info">
+                                <a href="{{ url_for('profile', username=post.author.username) }}">{{ post.author.username }}</a>
+                                {% if post.author.verified %}
+                                    <span class="verified-badge">✓</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="post-options">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </div>
+                    </div>
+                    
+                    {% if post.image_file %}
+                    <div class="post-image">
+                        <img src="{{ url_for('static', filename='uploads/posts/' + post.image_file) }}" alt="Post image">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="post-actions">
+                        <div class="post-actions-left">
+                            <button class="like-btn" data-post-id="{{ post.id }}">
+                                {% set liked = False %}
+                                {% for like in post.likes %}
+                                    {% if like.user_id == current_user.id %}
+                                        {% set liked = True %}
+                                    {% endif %}
+                                {% endfor %}
+                                <i class="{% if liked %}fas text-danger{% else %}far{% endif %} fa-heart"></i>
+                            </button>
+                            <button class="comment-btn">
+                                <i class="far fa-comment"></i>
+                            </button>
+                            <button class="share-btn">
+                                <i class="far fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="post-actions-right">
+                            <button class="save-btn">
+                                <i class="far fa-bookmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="post-stats">
+                        <span class="like-count">{{ post.likes|length }} likes</span>
+                    </div>
+                    
+                    {% if post.content %}
+                    <div class="post-content">
+                        <span class="post-username">{{ post.author.username }}</span>
+                        <span class="post-text">{{ post.content }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if post.comments|length > 0 %}
+                    <div class="view-comments">
+                        <a href="#">View all {{ post.comments|length }} comments</a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="post-comments">
+                        {% for comment in post.comments[:2] %}
+                        <div class="comment">
+                            <span class="comment-username">{{ comment.author.username }}</span>
+                            <span class="comment-text">{{ comment.content }}</span>
+                            {% if comment.user_id == current_user.id %}
+                            <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="post" class="delete-comment-form">
+                                <button type="submit" class="delete-comment-btn" title="Delete comment">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="post-time">
+                        <span>{{ post.timestamp.strftime('%d %B') }}</span>
+                    </div>
+                    
+                    <div class="add-comment">
+                        <form action="{{ url_for('add_comment', post_id=post.id) }}" method="post">
+                            <input type="text" name="content" placeholder="Add a comment..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                            <button type="submit">Post</button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+        
+        {% if not has_visible_posts %}
+            <div class="no-posts">
+                <p>No posts from other users to display. Follow more users to see their posts!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* Instagram-like styling */
+.home-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.stories-container {
+    display: flex;
+    overflow-x: auto;
+    padding: 10px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #dbdbdb;
+}
+
+.story-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+.story-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    padding: 2px;
+}
+
+.story-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid white;
+    object-fit: cover;
+}
+
+.story-username {
+    font-size: 12px;
+    margin-top: 5px;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.post-card {
+    background-color: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 3px;
+    margin-bottom: 20px;
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+}
+
+.post-user {
+    display: flex;
+    align-items: center;
+}
+
+.profile-pic-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 10px;
+    object-fit: cover;
+}
+
+.post-user-info {
+    display: flex;
+    align-items: center;
+}
+
+.post-user-info a {
+    font-weight: 600;
+    text-decoration: none;
+    color: #262626;
+}
+
+.verified-badge {
+    color: #3897f0;
+    margin-left: 4px;
+}
+
+.post-options {
+    cursor: pointer;
+}
+
+.post-image img {
+    width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+}
+
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+}
+
+.post-actions-left {
+    display: flex;
+}
+
+.post-actions button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+.post-stats {
+    padding: 0 10px;
+    font-weight: 600;
+}
+
+.post-content {
+    padding: 5px 10px;
+}
+
+.post-username {
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.view-comments {
+    padding: 5px 10px;
+}
+
+.view-comments a {
+    color: #8e8e8e;
+    text-decoration: none;
+}
+
+.post-comments {
+    padding: 5px 10px;
+}
+
+.comment {
+    display: flex;
+    margin-bottom: 5px;
+    align-items: center;
+    position: relative;
+}
+
+.comment-username {
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.comment-text {
+    flex: 1;
+}
+
+.delete-comment-form {
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.comment:hover .delete-comment-form {
+    opacity: 1;
+}
+
+.delete-comment-btn {
+    background: none;
+    border: none;
+    color: #8e8e8e;
+    font-size: 12px;
+    padding: 2px 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.delete-comment-btn:hover {
+    color: #ed4956;
+    background-color: rgba(237, 73, 86, 0.1);
+}
+
+.post-time {
+    padding: 5px 10px;
+    color: #8e8e8e;
+    font-size: 12px;
+}
+
+.add-comment {
+    display: flex;
+    border-top: 1px solid #dbdbdb;
+    padding: 10px;
+}
+
+.add-comment form {
+    display: flex;
+    width: 100%;
+}
+
+.add-comment input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 5px;
+}
+
+.add-comment button {
+    background: none;
+    border: none;
+    color: #0095f6;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.no-posts {
+    text-align: center;
+    padding: 40px 0;
+    color: #8e8e8e;
+}
+</style>
+{% endblock %}
